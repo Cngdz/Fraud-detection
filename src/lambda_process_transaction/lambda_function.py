@@ -16,7 +16,7 @@ REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
 # Elasticache
 redis_client: redis.Redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
-async def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway thì event thường là 1 dict chứa json data
+def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway thì event thường là 1 dict chứa json data
     try:
         # Parse event
         transaction: dict = json.loads(event.get("body", event)) # lấy giá trị body, nếu không có thì trả về toàn bộ event
@@ -25,7 +25,7 @@ async def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway 
         validate_transaction(transaction) # kiểm tra sơ khởi định dạng và value của transaction
 
         # Kiểm tra blacklist / rule (ElastiCache)
-        rule_result = await check_rules(redis_client, transaction) 
+        rule_result = check_rules(redis_client, transaction) 
 
         # Nếu bất kỳ rule nào False → lỗi
         if any(rule_result.values()):
@@ -56,3 +56,4 @@ async def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway 
 
     except Exception as e:
         return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+

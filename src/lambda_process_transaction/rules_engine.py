@@ -17,9 +17,9 @@ def validate_transaction(txn: Dict[str, Any]) -> None:
     if amount <= 0:
         raise ValueError("amount must be positive")
 
-async def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[str, Any]:
+def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[str, Any]:
     user_id: str = str(txn["user_id"])
-    country: str = str(txn.get("country", "")).upper()
+    country: str = str(txn["country"])
 
     result: Dict[str, Any] = {
         "blacklist": False,
@@ -36,7 +36,7 @@ async def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[st
 
     # banned country
     try:
-        if country and redis_client.sismember("banned_countries", country): # nếu có nằm trong danh sách đen thì set mode country_black = true
+        if redis_client.sismember("banned_countries", country): # nếu có nằm trong danh sách đen thì set mode country_black = true
             result["country_block"] = True
     except redis.RedisError as e:
         raise RuntimeError(f"Redis error when checking banned_countries for country={country}: {e}") from e 
@@ -45,7 +45,8 @@ async def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[st
     try:
         now_sec: int = int(time.time()) # lấy thời gian hiện tại tính bằng giây
         counter_key: str = f"txn_count:{user_id}:{now_sec}"
-        count: int = await redis_client.incr(counter_key) # tự động tăng counter_key 1 đơn vị, nếu chưa có sẽ tạo mới và set = 1
+        # tự động tăng counter_key 1 đơn vị, nếu chưa có sẽ tạo mới và set = 1
+        count: int = redis_client.incr(counter_key) # type: ignore 
         
         if count == 1: # nếu key vừa được tạo mới lần đầu sẽ set ttl là 2 giây
             redis_client.expire(counter_key, 2) 
