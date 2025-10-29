@@ -1,9 +1,9 @@
 from typing import Any, Dict, List
-import time
 import redis
+import time
 
 def validate_transaction(txn: Dict[str, Any]) -> None:
-    required: List[str] = ["transaction_id", "user_id", "amount", "timestamp"]
+    required: List[str] = ["transaction_id", "user_id", "country", "amount", "timestamp"]
 
     # kiểm tra đầu vào transaction có chuẩn format required không
     for key in required:
@@ -55,3 +55,7 @@ async def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[st
         raise RuntimeError(f"Redis error when incrementing txn_count for user_id={user_id}: {e}") from e
 
     return result
+
+
+
+

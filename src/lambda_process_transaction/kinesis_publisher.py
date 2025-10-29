@@ -36,3 +36,4 @@ def publish_transaction(transaction: Dict[str, Any]) -> None:
         DeliveryStreamName=FIREHOSE_STREAM,
         Record={"Data": payload_bytes}
     )
+

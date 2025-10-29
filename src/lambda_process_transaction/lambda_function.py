@@ -1,5 +1,6 @@
 import json
 from typing import Any, Dict
+import asyncio
 import redis
 import os
 from rules_engine import validate_transaction, check_rules
@@ -25,6 +26,16 @@ async def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway 
 
         # Kiểm tra blacklist / rule (ElastiCache)
         rule_result = await check_rules(redis_client, transaction) 
+
+        # Nếu bất kỳ rule nào False → lỗi
+        if any(rule_result.values()):
+            return {
+                "statusCode": 400,
+                "body": json.dumps({
+                    "message": "Transaction failed due to rule violation",
+                    "rule_result": rule_result
+                })
+            }
 
         # Fire-and-forget: Kinesis + Firehose
         publish_transaction(transaction)
