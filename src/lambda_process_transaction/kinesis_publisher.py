@@ -8,14 +8,10 @@ load_dotenv()
 
 # Biến môi trường
 AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
-KINESIS_STREAM: str= os.getenv("KINESIS_STREAM", "fraud-transactions")
-FIREHOSE_STREAM: str = os.getenv("FIREHOSE_STREAM", "fraud-firehose")
+KINESIS_STREAM_NAME: str= os.getenv("KINESIS_STREAM_NAME", "fraud-transactions")
 
 # Kinesis Data Stream
 kinesis_client = boto3.client("kinesis", region_name=AWS_REGION)
-
-# Firehose (push raw log vào S3)
-firehose_client = boto3.client("firehose", region_name=AWS_REGION)
 
 def publish_transaction(transaction: Dict[str, Any]) -> None:
     """
@@ -26,14 +22,8 @@ def publish_transaction(transaction: Dict[str, Any]) -> None:
 
     # Push vào Kinesis Data Stream
     kinesis_client.put_record(
-        StreamName=KINESIS_STREAM,
+        StreamName=KINESIS_STREAM_NAME,
         Data=payload_bytes,
         PartitionKey=str(transaction.get("user_id", "unknown"))
-    )
-
-    # Push vào Firehose (raw log S3)
-    firehose_client.put_record(
-        DeliveryStreamName=FIREHOSE_STREAM,
-        Record={"Data": payload_bytes}
     )
 

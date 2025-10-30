@@ -45,7 +45,7 @@ def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[str, Any
     try:
         now_sec: int = int(time.time()) # lấy thời gian hiện tại tính bằng giây
         counter_key: str = f"txn_count:{user_id}:{now_sec}"
-        # tự động tăng counter_key 1 đơn vị, nếu chưa có sẽ tạo mới và set = 1
+        
         count: int = redis_client.incr(counter_key) # type: ignore 
         
         if count == 1: # nếu key vừa được tạo mới lần đầu sẽ set ttl là 2 giây

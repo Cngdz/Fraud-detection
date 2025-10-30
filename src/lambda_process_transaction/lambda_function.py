@@ -6,6 +6,7 @@ import os
 from rules_engine import validate_transaction, check_rules
 from kinesis_publisher import publish_transaction
 from dotenv import load_dotenv
+from save_s3 import save_to_s3
 
 load_dotenv()
 
@@ -29,19 +30,24 @@ def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway thì e
 
         # Nếu bất kỳ rule nào False → lỗi
         if any(rule_result.values()):
+            save_to_s3(transaction)
+
             return {
                 "statusCode": 400,
-                "body": json.dumps({
+                "status": "Declined",
+                # phần body này Api gateway bắt buộc yêu cầu là kiểu string => phải dumps để convert từ dict qua json
+                "body": json.dumps({ 
                     "message": "Transaction failed due to rule violation",
                     "rule_result": rule_result
                 })
             }
 
-        # Fire-and-forget: Kinesis + Firehose
+        # Fire-and-forget: Kinesis
         publish_transaction(transaction)
-
+        
         return {
             "statusCode": 200,
+            "status": "Approved",
             "body": json.dumps({
                 "message": "Transaction processed successfully",
                 "rule_result": rule_result
