@@ -25,7 +25,7 @@ Giả định cụ thể:  nameOrig là "C999999999" đã được nạp vào bl
 */
 
 {
-  "step": 2,
+  "step": 1,
   "type": "TRANSFER",
   "amount": 75000000.00,
   "nameOrig": "C999999999",
@@ -46,7 +46,7 @@ Cách Test: Bạn chỉ cần lấy JSON dưới đây, đổi giá trị step (
 Kết quả mong đợi: 5 lần đầu trả về Approved. Lần thứ 6 (trở đi) sẽ trả về Declined.
 */
 {
-  "step": 3,
+  "step": 1,
   "type": "CASH_OUT",
   "amount": 100000.00,
   "nameOrig": "C777777777",
