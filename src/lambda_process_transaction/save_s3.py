@@ -12,15 +12,20 @@ S3_PREFIX: str = os.getenv("S3_PREFIX", "violations/")  # tên root folder trong
 
 s3_client = boto3.client("s3", region_name=AWS_REGION)
 
-
 def save_to_s3(transaction_data: dict) -> None:
 
     # Lấy transaction_id hoặc timestamp để đặt tên file
-    transaction_id: str = transaction_data.get("transaction_id", "unknown")
-    timestamp: Any = transaction_data.get("timestamp")
-    file_name: str = f"{S3_PREFIX}{transaction_id}_{timestamp}.json"
+    user: str = transaction_data.get("nameOrig", "unknown")
+    device: str = transaction_data.get("nameDest", "unknown")
+    file_name: str = f"{S3_PREFIX}{user}_{device}.json"
+
+    print(f"[S3] Region={AWS_REGION} | Bucket={S3_BUCKET_NAME} | Key={file_name}")
 
     try:
+         # ===== Kiểm tra bucket tồn tại và quyền truy cập =====
+        s3_client.head_bucket(Bucket=S3_BUCKET_NAME)
+        print(f"[S3] Bucket exists and Lambda has access permission.")
+
         # Chuyển sang JSON string
         json_data: str = json.dumps(transaction_data, ensure_ascii=False)
 
@@ -32,8 +37,8 @@ def save_to_s3(transaction_data: dict) -> None:
             ContentType="application/json"
         )
 
-        print(f"Đã lưu giao dịch vi phạm vào S3: {S3_BUCKET_NAME}/{file_name}")
+        print(f"[S3] Upload successful at: {S3_BUCKET_NAME}/{file_name}")
 
     except ClientError as e:
-        raise RuntimeError(f"Lỗi khi ghi lên S3: {e}")
+        raise RuntimeError(f"[S3] ERROR: Unexpected exception: {e}")
         

@@ -3,60 +3,65 @@ import redis
 import time
 
 def validate_transaction(txn: Dict[str, Any]) -> None:
-    required: List[str] = ["transaction_id", "user_id", "country", "amount", "timestamp"]
+    required: List[str] = [
+        "type",
+        "nameOrig",
+        "nameDest",
+        "oldbalanceOrg",
+        "newbalanceOrig",
+        "amount",
+        "oldbalanceDest",
+        "newbalanceDest"
+    ]
 
     # kiểm tra đầu vào transaction có chuẩn format required không
     for key in required:
         if key not in txn:
-            raise KeyError(f"missing field: {key}")
+            raise KeyError(f"Missing field: {key}")
+
+def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[str, Any]:
+    user: str = str(txn["nameOrig"])
+    device: str = str(txn["nameDest"])
+    type: str = str(txn["type"])
+
+    result: Dict[str, Any] = {
+        "blackUser": False,
+        "blackDevice": False,
+        "SpawmOver5PerMinute": False,
+    }
 
     # tiền phải > 0
     amount: int = txn["amount"]
     if not isinstance(amount, (int, float)):
-        raise TypeError("amount must be numeric")
+        raise TypeError("Amount must be numeric")
     if amount <= 0:
-        raise ValueError("amount must be positive")
+        raise ValueError("Amount must be positive")
 
-def check_rules(redis_client: redis.Redis, txn: Dict[str, Any]) -> Dict[str, Any]:
-    user_id: str = str(txn["user_id"])
-    country: str = str(txn["country"])
-
-    result: Dict[str, Any] = {
-        "blacklist": False,
-        "country_block": False,
-        "rate_limit": False,
-    }
-
-    # blacklist
+    # black user
     try:
-        if redis_client.sismember("blacklist_users", user_id): # nếu có nằm trong danh sách đen thì set mode blacklist = true
-            result["blacklist"] = True
+        if redis_client.sismember("blacklist:nameOrig", user): # nếu có nằm trong danh sách đen thì set mode blacklist = true
+            result["blackUser"] = True
     except redis.RedisError as e:
-        raise RuntimeError(f"Redis error when checking blacklist_users for user_id={user_id}: {e}") from e
+        raise RuntimeError(f"Redis error when checking blackUser for user={user}: {e}") from e
 
-    # banned country
+    # black device
     try:
-        if redis_client.sismember("banned_countries", country): # nếu có nằm trong danh sách đen thì set mode country_black = true
-            result["country_block"] = True
+        if redis_client.sismember("blacklist:nameDes", device): # nếu có nằm trong danh sách đen thì set mode country_black = true
+            result["blackDevice"] = True
     except redis.RedisError as e:
-        raise RuntimeError(f"Redis error when checking banned_countries for country={country}: {e}") from e 
+        raise RuntimeError(f"Redis error when checking blackDevice for device={device}: {e}") from e 
 
     # tạo giới hạn 5 lần giao dịch trong 1 giây
     try:
-        now_sec: int = int(time.time()) # lấy thời gian hiện tại tính bằng giây
-        counter_key: str = f"txn_count:{user_id}:{now_sec}"
+        counter_key: str = f"{type}:txnCount:{user}:{device}"
         
         count: int = redis_client.incr(counter_key) # type: ignore 
         
-        if count == 1: # nếu key vừa được tạo mới lần đầu sẽ set ttl là 2 giây
-            redis_client.expire(counter_key, 2) 
+        if count == 1: # nếu key vừa được tạo mới lần đầu sẽ set ttl là 60 giây
+            redis_client.expire(counter_key, 60) 
         if count > 5: # nếu > 5 thì set mode limit = true
-            result["rate_limit"] = True
+            result["SpawmOver5PerMinute"] = True
     except redis.RedisError as e:
-        raise RuntimeError(f"Redis error when incrementing txn_count for user_id={user_id}: {e}") from e
+        raise RuntimeError(f"Redis error when incrementing txnCount for user={user}: {e}") from e
 
     return result
-
-
-
-

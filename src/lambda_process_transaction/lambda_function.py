@@ -1,6 +1,5 @@
 import json
 from typing import Any, Dict
-import asyncio
 import redis
 import os
 from rules_engine import validate_transaction, check_rules
@@ -15,23 +14,32 @@ REDIS_HOST: str = os.getenv("REDIS_HOST", "fraud-cache.xxxxxx.ng.0001.use1.cache
 REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
 
 # Elasticache
-redis_client: redis.Redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+redis_client: redis.Redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True, ssl=True)
 
-def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway thì event thường là 1 dict chứa json data
+def lambda_handler(event: dict, context: Any = None)-> Dict[str, Any]: # gọi qua api gateway thì event thường là 1 dict chứa json data
+    print("Lambda start")
+    print(f"[ELASTICACHE] Connecting to Elasticache at host: {REDIS_HOST} in port {REDIS_PORT}")
     try:
+        # Thử ping để kiểm tra kết nối thực tế
+        ping_response = redis_client.ping()
+        print(f"[ELASTICACHE] Redis connection test: {'Success' if ping_response else 'Failed'}")
+
         # Parse event
         transaction: dict = json.loads(event.get("body", event)) # lấy giá trị body, nếu không có thì trả về toàn bộ event
-
+        
         # Validate cơ bản
         validate_transaction(transaction) # kiểm tra sơ khởi định dạng và value của transaction
-
+        
         # Kiểm tra blacklist / rule (ElastiCache)
         rule_result = check_rules(redis_client, transaction) 
+
+        print(rule_result)
 
         # Nếu bất kỳ rule nào False → lỗi
         if any(rule_result.values()):
             save_to_s3(transaction)
-
+            
+            print("[TRANSACTION] transaction failed")
             return {
                 "statusCode": 400,
                 "status": "Declined",
@@ -43,7 +51,8 @@ def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway thì e
             }
 
         # Fire-and-forget: Kinesis
-        publish_transaction(transaction)
+        publish_transaction(transaction)    
+        print("[TRANSACTION] transaction sucessful")
         
         return {
             "statusCode": 200,
@@ -55,11 +64,31 @@ def lambda_handler(event: dict)-> Dict[str, Any]: # gọi qua api gateway thì e
         }
 
     except (KeyError, ValueError, TypeError) as e:
-        return {"statusCode": 400, "body": json.dumps({"error": str(e)})}
+        return {
+            "statusCode": 400, 
+            "status": "Declined",
+            "body": json.dumps({"error": str(e)})
+        }
 
     except redis.RedisError:
-        return {"statusCode": 500, "body": json.dumps({"error": "Elasticache connection failed"})}
+        return {
+            "statusCode": 500, 
+            "status": "Declined",
+            "body": json.dumps({"error": "Elasticache connection failed"})
+        }
 
     except Exception as e:
-        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+        return {
+            "statusCode": 500, 
+            "status": "Declined",
+            "body": json.dumps({"error": str(e)})
+        }
+    
 
+
+
+"""
+{
+  "body": "{\"transaction_id\": \"t1\", \"user_id\": \"u1\", \"country\": \"US\", \"amount\": 100, \"timestamp\": \"2025-10-30T10:00:00Z\"}"
+}
+"""
