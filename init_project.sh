@@ -52,6 +52,7 @@ echo "[TẠO] File cho 'lambda_process_transaction'..."
 touch src/lambda_process_transaction/lambda_function.py
 touch src/lambda_process_transaction/rules_engine.py
 touch src/lambda_process_transaction/kinesis_publisher.py
+touch src/lambda_process_transaction/save_s3.py
 touch src/lambda_process_transaction/requirements.txt
 
 # --- 9. Tạo các file cho src/lambda_fraud_scoring (Luồng Lạnh) ---

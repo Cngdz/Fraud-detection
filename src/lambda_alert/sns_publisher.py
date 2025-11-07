@@ -11,17 +11,18 @@ def publish_alert(message: str):
     topic_arn = os.getenv("ALERT_TOPIC_ARN")
 
     if not topic_arn:
-        print("[SNS Publisher] ALERT_TOPIC_ARN chưa được cấu hình.")
+        print("[SNS Publisher] ALERT_TOPIC_ARN is not configured")
         return False
 
     try:
         sns_client.publish(
             TopicArn=topic_arn,
-            Subject="CẢNH BÁO GIAO DỊCH GIAN LẬN",
+            Subject="FRAUD ALERT",
             Message=message
         )
-        print(f"[SNS Publisher] Đã gửi cảnh báo đến SNS topic: {topic_arn}")
+        print(f"[SNS Publisher] Alert sent to SNS topic: {topic_arn}")
         return True
     except Exception as e:
-        print(f"[SNS Publisher] Lỗi gửi SNS: {e}")
+        print(f"[SNS Publisher] Failed to send SNS alert: {e}")
         return False
+

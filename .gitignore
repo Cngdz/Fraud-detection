@@ -1,3 +1,6 @@
 .env
-venv/
+package
+.venv
+lambda_function.zip
 __pycache__
+.pytest_cache

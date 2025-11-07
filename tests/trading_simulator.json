@@ -1,0 +1,58 @@
+/*
+ good_transaction Giao dịch này phải 
+ vượt qua tất cả các rule ở Luồng Nóng, được Lambda_ProcessTransaction 
+ trả về {"status": "Approved"} (hoặc tương tự), và được đẩy vào Kinesis/S3.
+*/
+
+{
+  "step": 1,
+  "type": "PAYMENT",
+  "amount": 18500.75,
+  "nameOrig": "C123456789",
+  "oldbalanceOrg": 500000.00,
+  "newbalanceOrig": 481499.25,
+  "nameDest": "M987654321",
+  "oldbalanceDest": 2500000.00,
+  "newbalanceDest": 2518500.75
+},
+
+/*
+Mục đích: Kiểm tra Luồng Nóng có chặn (block) giao dịch vi phạm rule hay không.
+
+Giả định: Rule của chúng ta (trong ElastiCache) đã được thay đổi. Thay vì check IP, giờ chúng ta check: nameOrig (ID khách hàng) có nằm trong blacklist không.
+
+Giả định cụ thể:  nameOrig là "C999999999" đã được nạp vào blacklist trong ElastiCache.
+*/
+
+{
+  "step": 2,
+  "type": "TRANSFER",
+  "amount": 75000000.00,
+  "nameOrig": "C999999999",
+  "oldbalanceOrg": 75000000.00,
+  "newbalanceOrig": 0.00,
+  "nameDest": "C111111111",
+  "oldbalanceDest": 15000.00,
+  "newbalanceDest": 75015000.00
+}
+
+/*
+Mục đích: Kiểm tra rule đếm (counter) trong ElastiCache.
+
+Giả định: Rule là > 5 giao dịch/phút/nameOrig.
+
+Cách Test: Bạn chỉ cần lấy JSON dưới đây, đổi giá trị step (tăng dần 3, 4, 5, 6, 7...) và bấm nút "Send" 6 lần liên tiếp thật nhanh.
+
+Kết quả mong đợi: 5 lần đầu trả về Approved. Lần thứ 6 (trở đi) sẽ trả về Declined.
+*/
+{
+  "step": 3,
+  "type": "CASH_OUT",
+  "amount": 100000.00,
+  "nameOrig": "C777777777",
+  "oldbalanceOrg": 900000.00,
+  "newbalanceOrig": 800000.00,
+  "nameDest": "C888888888",
+  "oldbalanceDest": 50000.00,
+  "newbalanceDest": 150000.00
+}
