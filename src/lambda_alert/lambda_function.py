@@ -5,10 +5,10 @@ from sns_publisher import publish_alert   # chuẩn bị sẵn, dù phần 1 ch�
 
 def lambda_handler(event: dict, context: Any = None) -> dict:
     # Event đến trực tiếp từ Lambda_FraudScoring
+    types: str = event.get("type", "unknown")
     device: str = event.get("nameDest", "unknown")
     user: str = event.get("nameOrig", "unknown")
-    score: str = event.get("score", "N/A")
-    label: str = event.get("label", "N/A")
+    amount: str = event.get("amount", "unknown")
     violations: Dict[str, str] = event.get("violations", {}) # list các vi phạm (maybe nếu cần)
 
     violated_rules: list = [k for k, v in violations.items() if v]
@@ -19,11 +19,10 @@ def lambda_handler(event: dict, context: Any = None) -> dict:
     alert_message: str = (
         f"FRAUD ALERT\n"
         f"-------------------------------------\n"
-        f"Type: {type}\n"
+        f"Type: {types}\n"
         f"User: {user}\n"
         f"Device =: {device}\n"
-        f"AI Score: {score}\n"
-        f"Label: {label.upper()}\n"
+        f"Amount =: {amount}\n"
         f"Violated Rules: {violated_text}\n"
         f"-------------------------------------\n"
         f"This transaction was flagged by the automated fraud detection system."

@@ -57,31 +57,35 @@ def lambda_handler(event: dict, context: Any = None)-> Dict[str, Any]: # gọi q
         return {
             "statusCode": 200,
             "status": "Approved",
+            "headers": { "Content-Type": "application/json" },
             "body": json.dumps({
                 "message": "Transaction processed successfully",
                 "rule_result": rule_result
-            })
+            },default=str)
         }
 
     except (KeyError, ValueError, TypeError) as e:
         return {
             "statusCode": 400, 
             "status": "Declined",
-            "body": json.dumps({"error": str(e)})
+            "headers": { "Content-Type": "application/json" },
+            "body": json.dumps({"error": str(e)},default=str)
         }
 
     except redis.RedisError:
         return {
             "statusCode": 500, 
             "status": "Declined",
-            "body": json.dumps({"error": "Elasticache connection failed"})
+            "headers": { "Content-Type": "application/json" },
+            "body": json.dumps({"error": "Elasticache connection failed"}, default=str)
         }
 
     except Exception as e:
         return {
             "statusCode": 500, 
             "status": "Declined",
-            "body": json.dumps({"error": str(e)})
+            "headers": { "Content-Type": "application/json" },
+            "body": json.dumps({"error": str(e)},default=str)
         }
     
 
