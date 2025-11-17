@@ -72,12 +72,12 @@ def lambda_handler(event: dict, context: Any = None)-> Dict[str, Any]: # gọi q
             "body": json.dumps({"error": str(e)},default=str)
         }
 
-    except redis.RedisError:
+    except redis.RedisError as e:
         return {
             "statusCode": 500, 
             "status": "Declined",
             "headers": { "Content-Type": "application/json" },
-            "body": json.dumps({"error": "Elasticache connection failed"}, default=str)
+            "body": json.dumps({"error": f"Elasticache connection failed {e}"}, default=str)
         }
 
     except Exception as e:

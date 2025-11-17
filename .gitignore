@@ -2,5 +2,8 @@
 package
 .venv
 lambda_function.zip
+lambda_alert.zip
+lambda_process_transaction.zip
+lambda_sync_to_dashboard.zip
 __pycache__
 .pytest_cache
