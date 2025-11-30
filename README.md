@@ -1,6 +1,6 @@
 # PayShield - Real-time AI-powered Financial Fraud Detection System
 
-![Architecture]
+![deployment.png](deployment.png)
 
 ## Tổng quan
 
